@@ -1,6 +1,6 @@
-import React, { Suspense, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Sky, Stats, Html } from "@react-three/drei";
+import React, { Suspense, useEffect, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Sky, Stats, Html } from "@react-three/drei";
 
 import Grass from "./components/Grass";
 import { cameraConfig } from "./config/cameraConfig";
@@ -12,48 +12,114 @@ export default function App() {
 
   const cfg = weatherConfig[weather];
 
+  useEffect(() => {
+    const handleScroll = () => {
+      const doc = document.documentElement;
+      const scrollTop = doc.scrollTop;
+      const scrollHeight = doc.scrollHeight - doc.clientHeight;
+      const progress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
+      // Map 4 sections to weather states from darkest to brightest
+      if (progress < 0.25) {
+        setWeather("sunny");
+      } else if (progress < 0.5) {
+        setWeather("clouds");
+      } else if (progress < 0.75) {
+        setWeather("rain");
+      } else {
+        setWeather("snow");
+      }
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <Canvas
-      dpr={1}
-      camera={{ position: cameraConfig.position, fov: cameraConfig.fov }}
-    >
-      {/* Fog based on weather */}
-      <fog attach="fog" {...cfg.fog} />
+    <>
+      <Canvas
+        dpr={1}
+        camera={{ position: cameraConfig.position, fov: cameraConfig.fov }}
+        style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh" }}
+      >
+        {/* Initialize fog near target, then smoothly interpolate */}
+        <fog attach="fog" {...cfg.fog} />
 
-      {/* Sky */}
-      <Sky />
-      <ambientLight intensity={cfg.ambient} />
-      <pointLight position={[10, 10, 10]} />
+        {/* Ensure camera frames the scene like before (look at y=25) */}
+        <CameraLookAt />
 
-      <Suspense fallback={null}>
-        <Grass />
-        <WeatherController weather={weather} />
-      </Suspense>
+        {/* Sky */}
+        <Sky />
 
-      {/* Debug selector UI */}
-      <Html fullscreen>
-        <div
-          style={{
-            position: "absolute",
-            top: 20,
-            left: 20,
-            background: "rgba(0,0,0,0.5)",
-            padding: "8px",
-            borderRadius: "4px",
-          }}
-        >
-          <label style={{ color: "white", marginRight: "6px" }}>Weather:</label>
-          <select value={weather} onChange={(e) => setWeather(e.target.value)}>
-            <option value="sunny">Sunny</option>
-            <option value="rain">Rain</option>
-            <option value="snow">Snow</option>
-            <option value="clouds">Clouds</option>
-          </select>
-        </div>
-      </Html>
+        {/* Smoothly interpolate lights and fog towards current weather */}
+        <SmoothEnv target={cfg} />
 
-      <Stats />
-      <OrbitControls target={[0, 25, 0]} />
-    </Canvas>
+        <Suspense fallback={null}>
+          <Grass />
+          <WeatherController weather={weather} />
+        </Suspense>
+
+        {/* Debug selector UI */}
+        <Html fullscreen>
+          <div
+            style={{
+              position: "absolute",
+              top: 20,
+              left: 20,
+              background: "rgba(0,0,0,0.5)",
+              padding: "8px",
+              borderRadius: "4px",
+            }}
+          >
+            <label style={{ color: "white", marginRight: "6px" }}>Weather:</label>
+            <select value={weather} onChange={(e) => setWeather(e.target.value)}>
+              <option value="sunny">Sunny</option>
+              <option value="rain">Rain</option>
+              <option value="snow">Snow</option>
+              <option value="clouds">Clouds</option>
+            </select>
+          </div>
+        </Html>
+
+        <Stats />
+      </Canvas>
+
+      {/* Invisible scroll area to drive weather changes */}
+      <div style={{ height: "400vh" }} />
+    </>
+  );
+}
+
+function CameraLookAt() {
+  const { camera } = useThree();
+  useEffect(() => {
+    camera.lookAt(0, 25, 0);
+  }, [camera]);
+  return null;
+}
+
+function SmoothEnv({ target }) {
+  const ambientRef = useRef();
+  const pointRef = useRef();
+  const { scene } = useThree();
+  useFrame((_, delta) => {
+    const kFast = Math.min(1, delta * 3);
+    const kFog = Math.min(1, delta * 2);
+    if (ambientRef.current) {
+      ambientRef.current.intensity += (target.ambient - ambientRef.current.intensity) * kFast;
+    }
+    if (pointRef.current) {
+      pointRef.current.intensity += (target.pointLight - pointRef.current.intensity) * kFast;
+    }
+    if (scene.fog) {
+      scene.fog.color.lerp(target.fog.color, kFog);
+      scene.fog.near += (target.fog.near - scene.fog.near) * kFog;
+      scene.fog.far += (target.fog.far - scene.fog.far) * kFog;
+    }
+  });
+  return (
+    <>
+      <ambientLight ref={ambientRef} intensity={target.ambient} />
+      <pointLight ref={pointRef} position={[10, 10, 10]} intensity={target.pointLight} />
+    </>
   );
 }
