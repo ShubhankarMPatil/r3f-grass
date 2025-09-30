@@ -1,9 +1,8 @@
-// src/components/weather/RainSystem.jsx
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import { useFrame } from "@react-three/fiber";
 
-export default function RainSystem({ count = 10000 }) {
+export default function RainSystem({ intensity = 1.0, count = 10000 }) {
   const rainRef = useRef();
 
   // Initial random positions
@@ -30,7 +29,7 @@ export default function RainSystem({ count = 10000 }) {
     if (rainRef.current) {
       const pos = rainRef.current.geometry.attributes.position.array;
       for (let i = 0; i < count; i++) {
-        pos[i * 3 + 1] -= speeds[i] * delta;
+        pos[i * 3 + 1] -= speeds[i] * delta * intensity;
         if (pos[i * 3 + 1] < 0) {
           pos[i * 3 + 1] = 100 + Math.random() * 50;
           pos[i * 3 + 0] = (Math.random() - 0.5) * 200; // reset x
@@ -55,7 +54,7 @@ export default function RainSystem({ count = 10000 }) {
         size={0.1}
         color="#88ccee"
         transparent
-        opacity={0.8}
+        opacity={0.8 * intensity}
       />
     </points>
   );
