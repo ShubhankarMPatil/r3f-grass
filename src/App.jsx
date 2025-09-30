@@ -5,7 +5,6 @@ import { Sky, Stats, Html } from "@react-three/drei";
 import Grass from "./components/Grass";
 import { cameraConfig } from "./config/cameraConfig";
 import WeatherController from "./components/weather/WeatherController";
-<<<<<<< HEAD
 import { weatherConfig } from "./config/weatherConfig";
 import HorizontalSeasons from "./components/HorizontalSeasons";
 
@@ -16,13 +15,6 @@ export default function App() {
     // ids: sunny, clouds, rain, snow
     setWeather(id);
   }, []);
-=======
-import { useScrollWeatherTransition } from "./hooks/useWeatherTransition";
-
-export default function App() {
-  const { currentWeatherState, scrollProgress } = useScrollWeatherTransition();
-  const [manualWeather, setManualWeather] = useState(null);
->>>>>>> 647cab0eb5e37c94a95f2839d13d5f3c746b84bb
 
   return (
     <>
@@ -31,34 +23,24 @@ export default function App() {
         camera={{ position: cameraConfig.position, fov: cameraConfig.fov }}
         style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh" }}
       >
-        {/* Fog will be managed by SmoothEnv */}
-        <fog attach="fog" {...currentWeatherState.fog} />
+        {/* Initialize fog near target, then smoothly interpolate */}
+        <fog attach="fog" {...cfg.fog} />
 
         {/* Ensure camera frames the scene like before (look at y=25) */}
         <CameraLookAt />
 
-        {/* Sky with interpolated parameters */}
-        <Sky
-          distance={450000}
-          sunPosition={currentWeatherState.skyConfig.sunPosition}
-          inclination={currentWeatherState.skyConfig.inclination}
-          azimuth={currentWeatherState.skyConfig.azimuth}
-          mieCoefficient={currentWeatherState.skyConfig.mieCoefficient}
-          mieDirectionalG={currentWeatherState.skyConfig.mieDirectionalG}
-          rayleigh={currentWeatherState.skyConfig.rayleigh}
-          turbidity={currentWeatherState.skyConfig.turbidity}
-        />
+        {/* Sky */}
+        <Sky />
 
-        {/* Lights with current weather state */}
-        <ambientLight intensity={currentWeatherState.ambient} />
-        <pointLight position={[10, 10, 10]} intensity={currentWeatherState.pointLight} />
+        {/* Smoothly interpolate lights and fog towards current weather */}
+        <SmoothEnv target={cfg} />
 
         <Suspense fallback={null}>
           <Grass />
-          <WeatherController weatherState={currentWeatherState} />
+          <WeatherController weather={weather} />
         </Suspense>
 
-        {/* Debug UI with scroll progress */}
+        {/* Debug selector UI */}
         <Html fullscreen>
           <div
             style={{
@@ -68,17 +50,15 @@ export default function App() {
               background: "rgba(0,0,0,0.5)",
               padding: "8px",
               borderRadius: "4px",
-              color: "white",
-              fontSize: "12px",
-              fontFamily: "monospace",
             }}
           >
-            <div>Scroll Progress: {(scrollProgress * 100).toFixed(1)}%</div>
-            <div>Ambient: {currentWeatherState.ambient.toFixed(2)}</div>
-            <div>Point Light: {currentWeatherState.pointLight.toFixed(2)}</div>
-            <div>Cloud Density: {currentWeatherState.cloudDensity.toFixed(2)}</div>
-            <div>Rain: {currentWeatherState.rainIntensity.toFixed(2)}</div>
-            <div>Snow: {currentWeatherState.snowIntensity.toFixed(2)}</div>
+            <label style={{ color: "white", marginRight: "6px" }}>Weather:</label>
+            <select value={weather} onChange={(e) => setWeather(e.target.value)}>
+              <option value="sunny">Sunny</option>
+              <option value="rain">Rain</option>
+              <option value="snow">Snow</option>
+              <option value="clouds">Clouds</option>
+            </select>
           </div>
         </Html>
 
@@ -97,4 +77,31 @@ function CameraLookAt() {
     camera.lookAt(0, 25, 0);
   }, [camera]);
   return null;
+}
+
+function SmoothEnv({ target }) {
+  const ambientRef = useRef();
+  const pointRef = useRef();
+  const { scene } = useThree();
+  useFrame((_, delta) => {
+    const kFast = Math.min(1, delta * 3);
+    const kFog = Math.min(1, delta * 2);
+    if (ambientRef.current) {
+      ambientRef.current.intensity += (target.ambient - ambientRef.current.intensity) * kFast;
+    }
+    if (pointRef.current) {
+      pointRef.current.intensity += (target.pointLight - pointRef.current.intensity) * kFast;
+    }
+    if (scene.fog) {
+      scene.fog.color.lerp(target.fog.color, kFog);
+      scene.fog.near += (target.fog.near - scene.fog.near) * kFog;
+      scene.fog.far += (target.fog.far - scene.fog.far) * kFog;
+    }
+  });
+  return (
+    <>
+      <ambientLight ref={ambientRef} intensity={target.ambient} />
+      <pointLight ref={pointRef} position={[10, 10, 10]} intensity={target.pointLight} />
+    </>
+  );
 }
