@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Sky, Stats, Html } from "@react-three/drei";
 
@@ -6,32 +6,14 @@ import Grass from "./components/Grass";
 import { cameraConfig } from "./config/cameraConfig";
 import WeatherController from "./components/weather/WeatherController";
 import { weatherConfig } from "./config/weatherConfig";
+import HorizontalSeasons from "./components/HorizontalSeasons";
 
 export default function App() {
   const [weather, setWeather] = useState("sunny");
-
   const cfg = weatherConfig[weather];
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const doc = document.documentElement;
-      const scrollTop = doc.scrollTop;
-      const scrollHeight = doc.scrollHeight - doc.clientHeight;
-      const progress = scrollHeight > 0 ? scrollTop / scrollHeight : 0;
-      // Map 4 sections to weather states from darkest to brightest
-      if (progress < 0.25) {
-        setWeather("sunny");
-      } else if (progress < 0.5) {
-        setWeather("clouds");
-      } else if (progress < 0.75) {
-        setWeather("rain");
-      } else {
-        setWeather("snow");
-      }
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+  const handleSectionChange = useCallback((id) => {
+    // ids: sunny, clouds, rain, snow
+    setWeather(id);
   }, []);
 
   return (
@@ -83,8 +65,8 @@ export default function App() {
         <Stats />
       </Canvas>
 
-      {/* Invisible scroll area to drive weather changes */}
-      <div style={{ height: "400vh" }} />
+      {/* Horizontal season scroller overlay */}
+      <HorizontalSeasons onSectionChange={handleSectionChange} />
     </>
   );
 }

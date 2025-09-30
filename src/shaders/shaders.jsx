@@ -11,6 +11,9 @@ export const getVertexSource = height =>
   attribute float halfRootAngleCos;
   attribute float stretch;
   uniform float time;
+  // transient gust uniforms
+  uniform float gustStrength; // 0..1
+  uniform float gustDirection; // -1 left, +1 right
   varying vec2 vUv;
   varying float frc;
   
@@ -86,9 +89,17 @@ export const getVertexSource = height =>
     vec3 vPosition = vec3(position.x, position.y + position.y * stretch, position.z);
     vPosition = rotateVectorByQuaternion(vPosition, direction);
   
-   //Apply wind
-   float halfAngle = noise * 0.15;
-    vPosition = rotateVectorByQuaternion(vPosition, normalize(vec4(sin(halfAngle), 0.0, -sin(halfAngle), cos(halfAngle))));
+  //Apply base wind
+  float halfAngle = noise * 0.15;
+  vPosition = rotateVectorByQuaternion(vPosition, normalize(vec4(sin(halfAngle), 0.0, -sin(halfAngle), cos(halfAngle))));
+
+  // Apply transient gust: extra lateral bend and slight forward lean
+  // Stronger effect towards the tip using frc
+  float gustAmount = gustStrength;
+  // lateral sway: push along X with direction
+  vPosition.x += frc * gustAmount * gustDirection * 0.6;
+  // forward lean: tiny Z push to suggest movement
+  vPosition.z += frc * gustAmount * 0.15;
   
     //UV for texture
     vUv = uv;
