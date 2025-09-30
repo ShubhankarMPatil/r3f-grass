@@ -1,38 +1,28 @@
-// WeatherController.jsx
-import { useThree } from "@react-three/fiber";
-import { useEffect } from "react";
-import RainSystem from "./RainSystem";
-import SnowSystem from "./SnowSystem";
 import CloudSystem from "./CloudSystem";
-import SunnySky from "./SunnySky"; 
-import * as THREE from "three";
 
+export default function WeatherController({ weatherState }) {
+  const { cloudDensity, rainIntensity, snowIntensity } = weatherState;
 
-export default function WeatherController({ weather }) {
-  const { scene } = useThree();
+  // Determine weather type for cloud appearance
+  let weatherType = "clouds";
+  if (rainIntensity > 0.3) {
+    weatherType = "rain";
+  } else if (snowIntensity > 0.3) {
+    weatherType = "snow";
+  }
 
-  useEffect(() => {
-    switch (weather) {
-      case "rain":
-        scene.fog = new THREE.FogExp2(0x334455, 0.02); // bluish fog
-        break;
-      case "snow":
-        scene.fog = new THREE.FogExp2(0xffffff, 0.008); // bright white
-        break;
-      case "clouds":
-        scene.fog = new THREE.FogExp2(0x888888, 0.015); // gray fog
-        break;
-      default: // sunny
-        scene.fog = null;
-    }
-  }, [weather, scene]);
+  // Always show clouds when any weather effect is active
+  const shouldShowClouds = cloudDensity > 0.01 || rainIntensity > 0.01 || snowIntensity > 0.01;
+  const effectiveDensity = Math.max(cloudDensity, rainIntensity * 0.8, snowIntensity * 0.7);
 
   return (
     <>
-      {weather === "rain" && <RainSystem />}
-      {weather === "snow" && <SnowSystem />}
-      {weather === "clouds" && <CloudSystem />}
-      {weather === "sunny" && <SunnySky />}
+      {shouldShowClouds && (
+        <CloudSystem 
+          density={effectiveDensity} 
+          weatherType={weatherType}
+        />
+      )}
     </>
   );
 }
