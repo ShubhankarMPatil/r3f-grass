@@ -1,0 +1,87 @@
+:root { 
+  --scroll-x: 0px;
+}
+
+html, body, #root { 
+  height: 100%; 
+  margin: 0; 
+  overflow-x: hidden; 
+}
+
+/* Weather layer styling */
+.weather-layer { 
+  position: absolute; 
+  inset: 0; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  pointer-events: none; 
+}
+
+/* Navigation dots */
+.nav-dots {
+  position: fixed;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 10;
+}
+
+.dot { 
+  width: 10px; 
+  height: 10px; 
+  border-radius: 50%; 
+  background: rgba(255,255,255,0.3); 
+  border: none; 
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dot:hover {
+  background: rgba(255,255,255,0.5);
+}
+
+.dot.active { 
+  background: white; 
+  box-shadow: 0 0 10px rgba(255,255,255,0.12); 
+}
+
+/* Transition overlay */
+.transition-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+}
+
+.transition-overlay .glass {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(8px) saturate(110%);
+  -webkit-backdrop-filter: blur(8px) saturate(110%);
+  background: rgba(255,255,255,0.08);
+  will-change: opacity;
+}
+
+/* Wind effect */
+.transition-overlay .wind-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.transition-overlay .wind-line {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 2px;
+  will-change: transform, opacity;
+}
+
+.wind-line:nth-child(odd) { width: 25vw; }
+.wind-line:nth-child(even) { width: 15vw; }
