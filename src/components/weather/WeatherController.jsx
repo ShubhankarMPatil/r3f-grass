@@ -1,18 +1,28 @@
-import { useEffect } from "react";
-import RainSystem from "./RainSystem";
-import SnowSystem from "./SnowSystem";
 import CloudSystem from "./CloudSystem";
-
 
 export default function WeatherController({ weatherState }) {
   const { cloudDensity, rainIntensity, snowIntensity } = weatherState;
 
+  // Determine weather type for cloud appearance
+  let weatherType = "clouds";
+  if (rainIntensity > 0.3) {
+    weatherType = "rain";
+  } else if (snowIntensity > 0.3) {
+    weatherType = "snow";
+  }
+
+  // Always show clouds when any weather effect is active
+  const shouldShowClouds = cloudDensity > 0.01 || rainIntensity > 0.01 || snowIntensity > 0.01;
+  const effectiveDensity = Math.max(cloudDensity, rainIntensity * 0.8, snowIntensity * 0.7);
+
   return (
     <>
-      {/* Always render weather systems but control their intensity */}
-      {rainIntensity > 0.01 && <RainSystem intensity={rainIntensity} />}
-      {snowIntensity > 0.01 && <SnowSystem intensity={snowIntensity} />}
-      {cloudDensity > 0.01 && <CloudSystem density={cloudDensity} />}
+      {shouldShowClouds && (
+        <CloudSystem 
+          density={effectiveDensity} 
+          weatherType={weatherType}
+        />
+      )}
     </>
   );
 }

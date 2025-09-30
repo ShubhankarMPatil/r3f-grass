@@ -20,7 +20,7 @@ export const weatherConfig = {
       rayleigh: 1,
       turbidity: 8,
     },
-    cloudDensity: 0,
+    cloudDensity: 0.1, // Light wispy clouds even on sunny days
     rainIntensity: 0,
     snowIntensity: 0,
   },
@@ -37,8 +37,8 @@ export const weatherConfig = {
       rayleigh: 2,
       turbidity: 15,
     },
-    cloudDensity: 0.8,
-    rainIntensity: 1.0,
+    cloudDensity: 0.3, // Clouds are handled by rain intensity
+    rainIntensity: 1.0, // This will make clouds dark and dense
     snowIntensity: 0,
   },
   snow: {
@@ -54,9 +54,9 @@ export const weatherConfig = {
       rayleigh: 1.5,
       turbidity: 20,
     },
-    cloudDensity: 0.9,
+    cloudDensity: 0.4, // Clouds are handled by snow intensity
     rainIntensity: 0,
-    snowIntensity: 1.0,
+    snowIntensity: 1.0, // This will make clouds light and dense
   },
   clouds: {
     ambient: 0.35,
